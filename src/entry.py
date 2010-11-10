@@ -52,7 +52,17 @@ class SudokuPuzzle(object):
                 continue
             rowi, coli = i/9, i%9
             self.rows[rowi][coli].excludeVals(possibles.difference((v,)))
-
+    
+    def outputBinFile(self, filename, error=None):
+        with open(filename, 'wb') as fobj:
+            if error:
+                fobj.write(chr(32))
+                fobj.write(error)
+                return
+            chrval = lambda cell: chr(cell.val) if cell.val else chr(0)
+            cells = chain(*(rowgrp.cells for rowgrp in self.rowGroups))
+            fobj.write(''.join([chrval(cell) for cell in cells]))
+    
     def _rowStr(self, rowi):
         row = [c._shortStr() for c in self.rows[rowi]]
         join = lambda l: ' '.join([str(i) for i in l])
@@ -84,6 +94,10 @@ class SudokuPuzzle(object):
                                 cell.excludeVals(closedSetVals)
             if not foundClosedSet:
                 break
+    
+    def solve(self):
+        raise NotImplementedError
+
 
 
 class CellGroup(object):
@@ -199,18 +213,37 @@ class Cell(object):
         )
 
 
-
-
-if __name__ == '__main__':
+def main():
+    import sys
     
-    testd = r'\\ZD\Users\charlie\Documents\eclipse_workspace\sudoku'
+    if len(sys.argv) < 3:
+        print 'usage: %s [input_file] [output_file]'
     
     logging.basicConfig(level=logging.INFO)
+    inpth, outpth = sys.argv[1:3]
+    
     pzl = SudokuPuzzle()
-    pzl.initFromBinFile(p.join(testd, 'snail2.in'))
+    pzl.initFromBinFile(inpth)
     logging.info(' Result: \n%s'% pzl)
     pzl.solveCertain()
     logging.info(' Result: \n%s'% pzl)
+    pzl.outputBinFile(outpth)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception, e:
+        logging.exception(e)
+        raw_input()
+
+#    testd = r'\\ZD\Users\charlie\Documents\eclipse_workspace\sudoku'
+#    
+#    logging.basicConfig(level=logging.INFO)
+#    pzl = SudokuPuzzle()
+#    pzl.initFromBinFile(p.join(testd, 'snail2.in'))
+#    logging.info(' Result: \n%s'% pzl)
+#    pzl.solveCertain()
+#    logging.info(' Result: \n%s'% pzl)
     
     
 #    for fn in os.listdir(testd):
