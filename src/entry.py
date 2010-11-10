@@ -66,6 +66,24 @@ class SudokuPuzzle(object):
             if (rowi + 1) % 3 == 0:
                 rows.append(border)
         return '\n'.join(rows)
+    
+    def solveCertain(self):
+        ''' Solve as much of the puzzle as we can with certainty
+        '''
+        
+        while True:
+            foundClosedSet = False
+            for grpList in (self.rowGroups, self.colGroups, self.sqrGroups):
+                for grp in grpList:
+                    for cellset in grp.findClosedSets():
+                        foundClosedSet = True
+                        closedSetVals = iter(cellset).next().possibles
+                        uncertainCells = set(c for c in grp.cells if c.certainty < 1)
+                        for cell in uncertainCells.difference(cellset):
+                            if cell.certainty < 1: # could be changed from previous exclusions
+                                cell.excludeVals(closedSetVals)
+            if not foundClosedSet:
+                break
 
 
 class CellGroup(object):
@@ -77,12 +95,26 @@ class CellGroup(object):
     def _addCell(self, cell):
         self.cells.append(cell)
     
-    def findExclusives(self):
-        'Find cells that contain all of a certain set of values'
-        cells = list(self.cells)
-        for i, c in enumerate(cells):
-            cl = [test for test in cells[i:]
-                  if test.possibles == c.possibles]
+    def findClosedSets(self):
+        ''' Find sets of cells with the same list of possibles where
+              len(possibles) == len(setOfCells) ..
+            Where this is true, we know that no other cells in the
+              group can have those values.
+        '''
+        
+        closedsets = []
+        cells = set([c for c in self.cells if c.certainty < 1])
+        while len(cells) > 0:
+            testc = cells.pop()
+            cs = set([testc])
+            cs.update([c for c in cells
+                       if testc.possibles == c.possibles])
+            if len(cs) not in (1, 9) and len(cs) == len(testc.possibles):
+                closedsets.append(cs)
+            cells.difference_update(cs)
+        
+        return closedsets
+
 
 class RowCellGroup(CellGroup):
     pass
@@ -175,7 +207,9 @@ if __name__ == '__main__':
     
     logging.basicConfig(level=logging.INFO)
     pzl = SudokuPuzzle()
-    pzl.initFromBinFile(p.join(testd, '11-1.in'))
+    pzl.initFromBinFile(p.join(testd, 'snail2.in'))
+    logging.info(' Result: \n%s'% pzl)
+    pzl.solveCertain()
     logging.info(' Result: \n%s'% pzl)
     
     
