@@ -130,10 +130,12 @@ class SudokuPuzzle(object):
         Solve the puzzle, even if it involves guessing ...
         '''
         
-        def recTestAllPossibles(pzl, cell, unsolvedCellIter):
+        def recTestAllPossibles(pzl, cellIdx, unsolvedCells):
             ''' recursively try all possible values for all unsolved cells
             '''
             
+            assert cellIdx < len(unsolvedCells), 'recursed on solved pzl?'
+            cell = unsolvedCells[cellIdx] 
             if cell.solved:
                 return pzl
             
@@ -143,22 +145,23 @@ class SudokuPuzzle(object):
                 try:
                     clonecell.setValue(val)
                     clone.solveCertain()
-                except ProcessingError:
-                    # incorrect value .. try a different one
-                    continue
-                else:
                     if clone.solved:
                         break
-                    # FIXME: must be in try/catch, just like above ..
-                    nextcell = unsolvedCellIter.next() # Can't be empty if not solved ..
-                    clone = recTestAllPossibles(clone, nextcell, unsolvedCellIter)
+                    # Guess another cell ...
+                    clone = recTestAllPossibles(clone, cellIdx+1, unsolvedCells)
+                    assert clone.solved, 'recTestAllPossibles returned unsolved'
+                    break
+                except ProcessingError:
+                    # incorrect value .. try a different one
+                    continue                
             else:
                 raise ProcessingError("no val in possibles worked")
             
+            assert clone.solved, 'break in unsolved test?'
             return clone # Solved Test ..
         
         self.solveCertain()
-        if self.solved:
+        if self.solved: # No Need for the guesswork ..
             return
         
         # Create an iterator of unsolved cells, putting the ones with the
@@ -174,13 +177,11 @@ class SudokuPuzzle(object):
         sortkey = lambda cell: (cell.certainty, cellGroupCertainty(cell))
         unsolvedCells = [cell for cell in self.cells if not cell.solved]
         sortedUnsolvedCells = sorted(unsolvedCells, key=sortkey, reverse=True)
-        unsolvedCellIter = iter(sortedUnsolvedCells)
-        cell = unsolvedCellIter.next()
-        solved = recTestAllPossibles(self, cell, unsolvedCellIter)
+        solved = recTestAllPossibles(self, 0, sortedUnsolvedCells)
         
         # Copy solved vals back into self ..
         for unsolved, solved in zip(self.cells, solved.cells):
-            unsolved.setValue(solved)
+            unsolved.setValue(solved.val)
 
 
 class CellGroup(object):
@@ -323,43 +324,28 @@ def main(inpth, outpth):
     logging.info(' Result: \n%s'% pzl)
     pzl.solve()
     logging.info(' Result: \n%s'% pzl)
-    raw_input()
     pzl.outputBinFile(outpth)
 
 if __name__ == '__main__':
     
     logging.basicConfig(level=logging.INFO)
     
-    testd = r'D:\Users\charlie\Documents\eclipse_workspace\sudoku'
-    infn, outfn = p.join(testd, 'snail1.in'), p.join(testd, 'snail1.out')
-    main(infn, outfn)
+#    testd = r'D:\Users\charlie\Documents\eclipse_workspace\sudoku'
+#    infn, outfn = p.join(testd, 'snail1.in'), p.join(testd, 'snail1.out')
+#    main(infn, outfn)
     
-#    import sys
-#    
-#    if len(sys.argv) < 3:
-#        print 'usage: %s [input_file] [output_file]'
-#    
-#    inpth, outpth = sys.argv[1:3]
-#    
-#    try:
-#        main(inpth, outpth)
-#    except Exception, e:
-#        logging.exception(e)
-#        raw_input()
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
+    import sys
+    
+    if len(sys.argv) < 3:
+        print 'usage: %s [input_file] [output_file]'
+    
+    inpth, outpth = sys.argv[1:3]
+    
+    try:
+        main(inpth, outpth)
+    except Exception, e:
+        logging.exception(e)
+        raw_input()
 
 
 
