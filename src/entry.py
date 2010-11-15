@@ -1,9 +1,6 @@
 
-import os
-import os.path as p
 import logging
 import copy
-from itertools import chain, count
 
 __all__ = ['SudokuPuzzle', 'RowCellGroup', 'ColCellGroup', 'SqrCellGroup', 'Cell']
 
@@ -75,6 +72,17 @@ class SudokuPuzzle(object):
             for cell in row:
                 yield cell
     
+    @property
+    def groups(self):
+        for grpList in (self.rowGroups, self.colGroups, self.sqrGroups):
+            for grp in grpList:
+                yield grp
+    
+    def _getGroupsByUncertainty(self):
+        unsolvedGroups = filter(lambda g: g.certainty < 1.0, self.groups)
+        return sorted(unsolvedGroups, key=lambda g: g.certainty, reverse=True)
+    
+    
     def initFromBinFile(self, filename):
         with file(filename, 'rb') as fobj:
             vals = [ord(b) for b in fobj.read()]
@@ -94,8 +102,7 @@ class SudokuPuzzle(object):
                 fobj.write(error)
                 return
             chrval = lambda cell: chr(cell.val) if cell.val else chr(0)
-            cells = chain(*(rowgrp.cells for rowgrp in self.rowGroups))
-            fobj.write(''.join([chrval(cell) for cell in cells]))
+            fobj.write(''.join([chrval(cell) for cell in self.cells]))
     
     def solveCertain(self):
         ''' Solve as much of the puzzle as we can with certainty
@@ -103,27 +110,20 @@ class SudokuPuzzle(object):
         
         while True:
             modifiedPuzzle = False
-            for grpList in (self.rowGroups, self.colGroups, self.sqrGroups):
-                for grp in grpList:
-                    for cellset in grp.findClosedSets():
-                        closedSetVals = iter(cellset).next().possibles
-                        uncertainCells = set(c for c in grp.cells if c.certainty < 1)
-                        for cell in uncertainCells.difference(cellset):
-                            if not cell.solved: # could be changed from previous exclusions
-                                if len(closedSetVals - cell.possibles) < len(closedSetVals):
-                                    modifiedPuzzle = True
-                                    cell.excludeVals(closedSetVals)
+            for grp in self._getGroupsByUncertainty():
+                for cellset in grp.findClosedSets():
+                    closedSetVals = iter(cellset).next().possibles
+                    uncertainCells = set(c for c in grp.cells if c.certainty < 1)
+                    for cell in uncertainCells.difference(cellset):
+                        if not cell.solved: # could be changed from previous exclusions
+                            if len(closedSetVals - cell.possibles) < len(closedSetVals):
+                                modifiedPuzzle = True
+                                cell.excludeVals(closedSetVals)
             if not modifiedPuzzle:
                 break
     
     def clone(self):
-        return copy.deepcopy(self) # Not sure if this works ...
-#        clone = SudokuPuzzle()
-#        for cell in self.cells:
-#            if cell.solved:
-#                clonecell = clone.rows[cell.rowGrp.idx][cell.colGrp.idx]
-#                clonecell.setValue(cell.val)
-#        return clone
+        return copy.deepcopy(self)
     
     def solve(self):
         '''
@@ -330,14 +330,13 @@ if __name__ == '__main__':
     
     logging.basicConfig(level=logging.INFO)
     
-#    testd = r'D:\Users\charlie\Documents\eclipse_workspace\sudoku'
-#    infn, outfn = p.join(testd, 'snail1.in'), p.join(testd, 'snail1.out')
-#    main(infn, outfn)
-    
+    import os
     import sys
     
     if len(sys.argv) < 3:
-        print 'usage: %s [input_file] [output_file]'
+        scriptname = os.path.basename(sys.argv[0])
+        print 'usage: %s [input_file] [output_file]'% scriptname
+        sys.exit(1)
     
     inpth, outpth = sys.argv[1:3]
     
