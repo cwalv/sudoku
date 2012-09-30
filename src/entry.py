@@ -1,4 +1,5 @@
 
+import itertools
 import logging
 import copy
 
@@ -28,9 +29,8 @@ class SudokuPuzzle(object):
                 sg = self._getSquareGrp(rg.idx, cg.idx)
                 row.append(Cell(rg, cg, sg))
         
-        for row in self.rows:
-            for cell in row:
-                cell._connectCells()
+        for cell in self.cells:
+            cell._connectCells()
     
     def _getSquareGrp(self, rowi, coli):
         'create index 0 - 9 from rowi, coli'
@@ -82,18 +82,24 @@ class SudokuPuzzle(object):
         unsolvedGroups = filter(lambda g: g.certainty < 1.0, self.groups)
         return sorted(unsolvedGroups, key=lambda g: g.certainty, reverse=True)
     
-    
-    def initFromBinFile(self, filename):
-        with file(filename, 'rb') as fobj:
-            vals = [ord(b) for b in fobj.read()]
-        assert len(vals) == 81, 'expected 81 rows (got %d)'% len(vals)
-        assert all(map(lambda c: type(c) is int, vals)), 'all rows need to be int vals'
-        
-        for i, v in enumerate(vals):
+    def initFromIterable(self, valIter):
+        for i, v in enumerate(valIter):
             if v == 0:
                 continue
             rowi, coli = i/9, i%9
             self.rows[rowi][coli].setValue(v)
+
+    def initFromListOfRows(self, rows):
+        assert len(rows) == 9, 'expected 9 rows (got %d)'% len(rows)
+        assert all(map(lambda r: len(r) == 9, rows)), 'all rows need to have 9 vals'
+        self.initFromIterable(itertools.chain(*rows))
+    
+    def initFromBinFile(self, filename):
+        with file(filename, 'rb') as fobj:
+            vals = [ord(b) for b in fobj.read()]
+        assert len(vals) == 81, 'expected 81 vals (got %d)'% len(vals)
+        assert all(map(lambda c: type(c) is int, vals)), 'all vals need to be int vals'
+        self.initFromIterable(self, vals)
     
     def outputBinFile(self, filename, error=None):
         with open(filename, 'wb') as fobj:
@@ -318,18 +324,8 @@ class Cell(object):
         )
 
 
-def main(inpth, outpth):
-    pzl = SudokuPuzzle()
-    pzl.initFromBinFile(inpth)
-    logging.info(' Result: \n%s'% pzl)
-    pzl.solve()
-    logging.info(' Result: \n%s'% pzl)
-    pzl.outputBinFile(outpth)
+def mainFromFile(inpth, outpth):
 
-if __name__ == '__main__':
-    
-    logging.basicConfig(level=logging.INFO)
-    
     import os
     import sys
     
@@ -339,12 +335,43 @@ if __name__ == '__main__':
         sys.exit(1)
     
     inpth, outpth = sys.argv[1:3]
-    
     try:
-        main(inpth, outpth)
+        pzl = SudokuPuzzle()
+        pzl.initFromBinFile(inpth)
+        logging.info(' Result: \n%s'% pzl)
+        pzl.solve()
+        logging.info(' Result: \n%s'% pzl)
+        pzl.outputBinFile(outpth)
     except Exception, e:
         logging.exception(e)
-        raw_input()
+        raw_input('hit enter to exit ..')
+    
+
+def main():
+    pzl = SudokuPuzzle()
+    rows = [[0,5,0,9,0,0,1,0,0],
+            [0,0,9,0,0,8,0,0,4],
+            [4,0,0,7,0,2,0,6,0],
+            [0,0,0,0,9,0,0,0,0],
+            [0,1,2,0,0,0,3,7,0],
+            [0,0,0,0,2,0,0,0,0],
+            [0,3,0,5,0,4,0,0,6],
+            [1,0,0,8,0,0,5,0,0],
+            [0,0,8,0,0,9,0,1,0]]
+    
+    pzl.initFromListOfRows(rows)
+    
+    logging.info(' Result: \n%s'% pzl)
+    pzl.solve()
+    logging.info(' Result: \n%s'% pzl)
+
+
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    main()
+    
 
 
 
