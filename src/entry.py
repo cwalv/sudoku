@@ -3,7 +3,7 @@ import itertools
 import logging
 import copy
 
-__all__ = ['SudokuPuzzle', 'RowCellGroup', 'ColCellGroup', 'SqrCellGroup', 'Cell']
+__all__ = ['SudokuPuzzle', 'CellGroup', 'Cell']
 
 class ExhaustedError(Exception):
     "Thrown when the solver gives up"
@@ -17,9 +17,10 @@ class SudokuPuzzle(object):
     indices = range(9)
     
     def __init__(self):
-        self.rowGroups = [RowCellGroup(i) for i in self.indices]
-        self.colGroups = [ColCellGroup(i) for i in self.indices]
-        self.sqrGroups = [SqrCellGroup(i) for i in self.indices]
+        
+        self.rowGroups = [CellGroup(i) for i in self.indices]
+        self.colGroups = [CellGroup(i) for i in self.indices]
+        self.sqrGroups = [CellGroup(i) for i in self.indices]
         self.rows = []
         
         for rg in self.rowGroups:
@@ -228,16 +229,6 @@ class CellGroup(object):
     @property
     def certainty(self):
         return sum(c.certainty for c in self.cells)/len(self.cells)
-
-
-class RowCellGroup(CellGroup):
-    pass
-
-class ColCellGroup(CellGroup):
-    pass
-
-class SqrCellGroup(CellGroup):
-    pass
 
 
 class Cell(object):
