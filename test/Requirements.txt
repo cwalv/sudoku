@@ -1,0 +1,25 @@
+Sudoku Puzzle Solver
+
+Sudoku Rules:
+
+Place the numbers 1 to 9 in the empty squares so that each row, each column and each 3x3 box contains the same number only once.
+
+Program Requirements:
+
+Given an input file of 81 bytes, solve the puzzle by writing out the answer to a new file containing only 81 bytes. The input file is binary, where 0 equals an empty square. The numbers are in row-order.
+
+The input and output file names are provided on the command line. For example: sudoku input.in output.out
+
+For any error, write out an ASCII error string to the file instead. If the first byte of the file is the value 32 or greater, then the file contains an error string instead of the solution.
+
+The program should not contain any user input. You can optionally print to the console or a graphical window. Your answer must still be written to the output file.
+
+You are provided a application that runs multiple puzzles and displays your results. The program name is SudokuRunner.exe, located in the 'c:\sudoku' folder. You are also provided six different puzzle input files to solve.
+
+You can use any of the following languages: C, C++, C#, Python, Perl or Java.
+
+You can use any of the following programming environments: Visual Studio 2008, Visual Studio 2010, Notepad++, or Eclipse.
+
+You've got 2 hours to complete your Sudoku puzzle solver program.
+
+Good luck!
